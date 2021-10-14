@@ -47,7 +47,7 @@ def check_restart_count(i,threshold=5):
 SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
 RESTART_THRESHOLD = 5              	          # Maximun restart_count
 FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
-ERROR_MESSAGE = ['ImagePullBackOff']          # waiting error message
+ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
 
 
 
@@ -70,5 +70,5 @@ for i in ret.items:
         # delete pod
         if kill_policy:
             v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
-            #print(f'kill {_pod_name}')
+            print(f'kill pod:{_pod_name}, namespace:{_namespace}')
                     
