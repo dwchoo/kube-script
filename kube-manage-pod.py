@@ -14,7 +14,7 @@ def check_waiting_error(i,error_message):
     try:
         message = str(i.status.container_statuses[0].state.waiting.reason)
     except:
-        message = None
+        message = 'None'
     if message in error_message:
         return True
     else:
@@ -23,10 +23,14 @@ def check_waiting_error(i,error_message):
 def check_forbidden_command(i,forbidden_command):
     try:
         command = i.spec.containers[0].command
+        args    = i.spec.containers[0].args
     except:
-        command = None
+        command = ['None']
+        args    = ['None']
     for __command in forbidden_command:
         if any([__command in _com for _com in command]):
+            return True
+        if any([__command in _args for _args in args]):
             return True
     return False
 
