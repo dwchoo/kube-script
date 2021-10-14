@@ -1,5 +1,15 @@
 from kubernetes import client, config
 
+def check_system_namespace(i,system_namespace):
+	try:
+		namespace = str(i.metadata.namespace)
+	except:
+		namespace = None
+	if namespace in system_namespace:
+		return True
+	else:
+		return False
+
 def check_waiting_error(i,error_message):
 	try:
 		message = str(i.status.container_statuses[0].state.waiting.reason)
@@ -30,10 +40,11 @@ def check_restart_count(i,threshold=5):
 	else:
 		return False
 
+SYSTEM_NAMESPACE = ['kube']
+RESTART_THRESHOLD = 5              	          # Maximun restart_count
+FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
+ERROR_MESSAGE = ['ImagePullBackOff']          # waiting error message
 
-restart_threshold = 5                         # Maximun restart_count
-error_message = ['ImagePullBackOff']          # waiting error message
-forbidden_command = ['sleep','tail','null']   # forbidden commands
 
 
 config.load_kube_config()
@@ -41,15 +52,16 @@ v1 = client.CoreV1Api()
 ret = v1.list_pod_for_all_namespaces()
 
 for i in ret.items:
-	_namespace = str(i.metadata.namespace)
-	if 'kube' in _namespace:
-		continue
+	if check_system_namespace(i,SYSTEM_NAMESPACE):
+		continue	# if it is system namespace, continue(pass below code).
 	if i.status.container_statuses:
 		_pod_name = str(i.metadata.name)
+		# Check pod
 		kill_policy = any([
-			check_restart_count(i,restart_threshold),
-			check_forbidden_command(i, forbidden_command),
-			check_waiting_error(i, error_message),
+			check_restart_count(i,RESTART_THRESHOLD),
+			check_forbidden_command(i, FORBIDDEN_COMMAND),
+			check_waiting_error(i, ERROR_MESSAGE),
 		])
+		# delete pod
 		if kill_policy:
 			v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
