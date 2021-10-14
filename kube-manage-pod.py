@@ -65,3 +65,4 @@ for i in ret.items:
 		# delete pod
 		if kill_policy:
 			v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
+			
