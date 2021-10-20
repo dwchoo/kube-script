@@ -146,8 +146,8 @@ for i in ret.items:
     if pod_checker.check_system_namespace(i):
         continue	# if it is system namespace, continue(pass below code).
 
-    _pod_check = pod_checker(i)
     if pod_checker.container_status(i):
+        _pod_check = pod_checker(i)
         _namespace = _pod_check.namespace
         _pod_name = _pod_check.pod_name
         # Check pod
