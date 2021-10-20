@@ -50,7 +50,7 @@ class pod_checker:
             self.message = str(i.status.container_statuses[0].state.waiting.reason)
         except:
             self.message = 'None'
-        if message in error_message:
+        if self.message in error_message:
             return True
         else:
             return False
@@ -78,7 +78,7 @@ class pod_checker:
             self.restart_count = int(i.status.container_status[0].restart_count)
         except:
             self.restart_count = 0
-        if restart_count > threshold:
+        if self.restart_count > threshold:
             return True
         else:
             return False
@@ -99,7 +99,11 @@ class pod_checker:
 
     @classmethod
     def container_status(cls,i):
-        return i.status.container_status
+        try:
+            status = i.status.container_status
+        except:
+            status = None
+        return status
 
     def pod_info(self,):
 
