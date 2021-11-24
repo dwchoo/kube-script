@@ -1,11 +1,14 @@
 from kubernetes import client, config
 from pprint import pprint
+from datetime import datetime, timezone
+import argparse
 
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
     FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
+    NOT_RUNNING_THRESHOLD = 2                     # threshold of pod not started days
     def __init__(self,
             pod,
             *args,
@@ -18,6 +21,7 @@ class pod_checker:
         self.bool_restart_threshold = self.check_restart_count(self.pod)
         self.bool_error_message = self.check_error_message(self.pod)
         self.bool_forbidden_command = self.check_forbidden_command(self.pod)
+        self.bool_not_running = self.check_container_not_running(self.pod)
 
         self.namespace = self.return_namespace(self.pod)
         self.pod_name = self.return_pod_name(self.pod)
@@ -28,6 +32,7 @@ class pod_checker:
                 self.bool_restart_threshold,
                 self.bool_error_message,
                 self.bool_forbidden_command,
+                self.bool_not_running,
             ]
         return kill_policy_list
 
@@ -84,6 +89,30 @@ class pod_checker:
         else:
             return False
 
+    def check_container_not_running(self,i):
+        threshold = pod_checker.NOT_RUNNING_THRESHOLD
+        today = datetime.now(timezone.utc)
+        try:
+            container_status = i.status.container_statuses[-1].state
+            running_state = container_status.running
+            if running_state:
+                self.running = True
+                return False
+            else:
+                self.running = False
+                date_delta = (today-container_status.terminated.finished_at).days
+                if date_delta > threshold:
+                    return True
+                else:
+                    return False
+        except:
+            self.running = False
+            return False
+                
+            
+
+        
+
     def return_namespace(self,i):
         try:
             namespace = str(i.metadata.namespace)
@@ -110,12 +139,14 @@ class pod_checker:
 
         _namespace = self.namespace
         _pod_name = self.pod_name
+        _pod_running = self.running
         _restart_count = self.restart_count
         _command = self.break_command
         _error = self.message
 
         info_str = f'namespace: {_namespace:13}, \
                 pod: {_pod_name}, \
+                running: {_pod_running}\
                 restart: {_restart_count}\
                 command: {_command}\
                 error: {_error}'
@@ -130,23 +161,30 @@ class pod_checker:
         return info
         
 
-SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
-RESTART_THRESHOLD = 5              	          # Maximun restart_count
-FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
-ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
 
-pod_checker.SYSTEM_NAMESPACE = SYSTEM_NAMESPACE
-pod_checker.RESTART_THRESHOLD = RESTART_THRESHOLD
-pod_checker.FORBIDDEN_COMMAND = FORBIDDEN_COMMAND
-pod_checker.ERROR_MESSAGE = ERROR_MESSAGE
+def main():
+    parser = argparse.ArgumentParser(description='Kubernetes pod killer')
+    parser.add_argument('--delete', action='store_true')
+    args = parser.parse_args()
+
+    SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
+    RESTART_THRESHOLD = 5              	          # Maximun restart_count
+    FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
+    ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
+    NOT_RUNNING_THRESHOLD = 2                       # Days of pod not running
 
 
-if __name__ == '__main__':
+    pod_checker.SYSTEM_NAMESPACE = SYSTEM_NAMESPACE
+    pod_checker.RESTART_THRESHOLD = RESTART_THRESHOLD
+    pod_checker.FORBIDDEN_COMMAND = FORBIDDEN_COMMAND
+    pod_checker.ERROR_MESSAGE = ERROR_MESSAGE
+    pod_checker.NOT_RUNNING_THRESHOLD = NOT_RUNNING_THRESHOLD
+
     config.load_kube_config()
     v1 = client.CoreV1Api()
     ret = v1.list_pod_for_all_namespaces()
-    #ret = v1.list_namespaced_pod('')
-
+    #ret = v1.list_namespaced_pod('')           # select one pod
+    deleted_pod = 0
 
     for i in ret.items:
         if pod_checker.check_system_namespace(i):
@@ -164,6 +202,17 @@ if __name__ == '__main__':
 
             # delete pod
             if kill_policy:
-                v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
-                print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                deleted_pod += 1
+                if args.delete:
+                    print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                    v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
+                else:
+                    print(f"POD IS NOT DELETED")
+                    print(f"If you want to delete, add '--delete' args")
+                    print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+    if deleted_pod == 0:
+        print(f"There is no pod to delete")
                     
+
+if __name__ == '__main__':
+    main()
