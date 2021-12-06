@@ -144,12 +144,12 @@ class pod_checker:
         _command = self.break_command
         _error = self.message
 
-        info_str = f'namespace: {_namespace:13}, \
-                pod: {_pod_name}, \
-                running: {_pod_running}\
-                restart: {_restart_count}\
-                command: {_command}\
-                error: {_error}'
+        info_str = f'''namespace: {_namespace:13}
+pod name: {_pod_name}
+running: {_pod_running}
+restart: {_restart_count}
+command: {_command}
+error: {_error}'''
         info = dict(
             namespace = _namespace,
             pod = _pod_name,
@@ -165,11 +165,12 @@ class pod_checker:
 def main():
     parser = argparse.ArgumentParser(description='Kubernetes pod killer')
     parser.add_argument('--delete', action='store_true')
+    parser.add_argument('--info',action='store_true')
     args = parser.parse_args()
 
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
-    FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
+    FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
     NOT_RUNNING_THRESHOLD = 2                       # Days of pod not running
 
@@ -186,6 +187,10 @@ def main():
     #ret = v1.list_namespaced_pod('')           # select one pod
     deleted_pod = 0
 
+    if not args.delete:
+        print(f"POD IS NOT DELETED")
+        print(f"If you want to delete, add '--delete' args")
+
     for i in ret.items:
         if pod_checker.check_system_namespace(i):
             continue	# if it is system namespace, continue(pass below code).
@@ -197,8 +202,10 @@ def main():
             
             # Check pod
             kill_policy = any(_pod_check.check_kill())
-            #pprint(_pod_check.pod_info()['log'])
-            #pprint(_pod_check.check_kill())
+            if args.info:
+                print(f'==============================')
+                print(_pod_check.pod_info()['log'])
+                print(_pod_check.check_kill())
 
             # delete pod
             if kill_policy:
@@ -207,8 +214,6 @@ def main():
                     print(f'kill pod:{_pod_name}, namespace:{_namespace}')
                     v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
                 else:
-                    print(f"POD IS NOT DELETED")
-                    print(f"If you want to delete, add '--delete' args")
                     print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
     if deleted_pod == 0:
         print(f"There is no pod to delete")
