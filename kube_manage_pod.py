@@ -6,7 +6,7 @@ import argparse
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
-    FORBIDDEN_COMMAND = ['sleep','tail','null']   # forbidden commands
+    FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
     NOT_RUNNING_THRESHOLD = 2                     # threshold of pod not started days
     def __init__(self,
@@ -169,7 +169,7 @@ error: {_error}'''
         return info
         
 class user_checker:
-    MAX_POD_NUM = 2                               # Number of pods that one user can run
+    MAX_POD_NUM = 12                               # Number of pods that one user can run
     def __init__(self,namespace):
         self.namespace = namespace
         self.pods = self.pod_loader(self.namespace)
@@ -177,7 +177,7 @@ class user_checker:
     def delete_pod_name_list(self,):
         max_num = user_checker.MAX_POD_NUM
         if self.num_pods() <= max_num:
-            return None
+            return []
         time_sort_list = self.pod_name_time_pair(self.pods)
         delete_list = time_sort_list[max_num:]
         return [i[1] for i in delete_list]
@@ -282,10 +282,16 @@ def main():
             previous_namespace = _namespace
 
 
+    # delete multiple pod runner's pods
+    # Not now user this rule, so THRESHOLD is 12
+    # User can make 12 pods now
+    # user_checker.MAX_POD_NUM = 12
     if len(multiple_pod_runner_list) > 0:
         for _namespace in set(multiple_pod_runner_list):
             _user_checker = user_checker(_namespace)
             delete_pod_list = _user_checker.delete_pod_name_list()
+            if len(delete_pod_list) <= 0:
+                continue
             for _pod_name in delete_pod_list:
                 if args.delete:
                     print(f'kill pod:{_pod_name}, namespace:{_namespace}')
