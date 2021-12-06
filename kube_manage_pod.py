@@ -25,6 +25,7 @@ class pod_checker:
 
         self.namespace = self.return_namespace(self.pod)
         self.pod_name = self.return_pod_name(self.pod)
+        self.pod_create_time = self.return_pod_create_time(self.pod)
 
     def check_kill(self,):
         kill_policy_list = [
@@ -108,8 +109,15 @@ class pod_checker:
         except:
             self.running = False
             return False
+
+
                 
-            
+    def return_pod_create_time(self,i):
+        try:
+            create_time = i.metadata.creation_timestamp
+            return create_time
+        except:
+            return False
 
         
 
@@ -160,6 +168,53 @@ error: {_error}'''
         )
         return info
         
+class user_checker:
+    MAX_POD_NUM = 2                               # Number of pods that one user can run
+    def __init__(self,namespace):
+        self.namespace = namespace
+        self.pods = self.pod_loader(self.namespace)
+
+    def delete_pod_name_list(self,):
+        max_num = user_checker.MAX_POD_NUM
+        if self.num_pods() <= max_num:
+            return None
+        time_sort_list = self.pod_name_time_pair(self.pods)
+        delete_list = time_sort_list[max_num:]
+        return [i[1] for i in delete_list]
+
+    def pod_loader(self,ns):
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        ret = v1.list_namespaced_pod(f'{ns}')
+        return ret.items
+
+    def num_pods(self,):
+        num_pods = len(self.pods)
+        return num_pods
+
+    def pod_name_time_pair(self,pod_list):
+        name_list = list()
+        time_list = list()
+        for i in pod_list:
+            if pod_checker.check_system_namespace(i):
+                continue	# if it is system namespace, continue(pass below code).
+
+            if pod_checker.container_status(i):
+                _pod_check = pod_checker(i)
+                _namespace = _pod_check.namespace
+                _pod_name = _pod_check.pod_name
+                _pod_create_time = _pod_check.pod_create_time
+                name_list.append(_pod_name)
+                time_list.append(_pod_create_time)
+        time_sort_list = sorted(zip(time_list,name_list))
+        return time_sort_list
+
+
+
+
+
+
+
 
 
 def main():
@@ -187,11 +242,15 @@ def main():
     #ret = v1.list_namespaced_pod('')           # select one pod
     deleted_pod = 0
 
+    previous_namespace = None
+    multiple_pod_runner_list = list()
+
     if not args.delete:
         print(f"POD IS NOT DELETED")
         print(f"If you want to delete, add '--delete' args")
 
     for i in ret.items:
+
         if pod_checker.check_system_namespace(i):
             continue	# if it is system namespace, continue(pass below code).
 
@@ -215,6 +274,25 @@ def main():
                     v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
                 else:
                     print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+
+        # check multiple pod runner
+        if previous_namespace == _namespace:
+            multiple_pod_runner_list.append(_namespace)
+        else:
+            previous_namespace = _namespace
+
+
+    if len(multiple_pod_runner_list) > 0:
+        for _namespace in set(multiple_pod_runner_list):
+            _user_checker = user_checker(_namespace)
+            delete_pod_list = _user_checker.delete_pod_name_list()
+            for _pod_name in delete_pod_list:
+                if args.delete:
+                    print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                    v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
+                else:
+                    print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+
     if deleted_pod == 0:
         print(f"There is no pod to delete")
                     
