@@ -339,7 +339,7 @@ def main():
     running_pods_namespace = list()
 
     print(f'=====================================================================')
-    print(f'{datetime.now().strftime("%Y-%m-%d_%H%M%S")}')
+    print(f'{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
     if not args.delete:
         print(f"POD IS NOT DELETED")
         print(f"If you want to delete, add '--delete' args")
