@@ -346,6 +346,7 @@ def main():
             _user_checker = user_checker(_namespace)
             delete_pod_list = _user_checker.delete_pod_name_list()
             if len(delete_pod_list) <= 0:
+                print(f'delete_list : {delete_pod_list}')
                 continue
             for _pod_name in delete_pod_list:
                 if args.delete:
