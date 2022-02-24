@@ -351,13 +351,13 @@ def main():
     # delete multiple pod runner's pods
     # Not now user this rule, so THRESHOLD is 12
     # User can make 12 pods now
-    if len(multiple_pod_runner_list) > 0:
+    if 1:
+    #if len(multiple_pod_runner_list) > 0:
         #for _namespace in set(multiple_pod_runner_list):
         for _namespace in set(running_pods_namespace):
             _user_checker = user_checker(_namespace)
             delete_pod_list = _user_checker.delete_pod_name_list()
             if len(delete_pod_list) <= 0:
-                print(f'delete_list : {delete_pod_list}')
                 continue
             for _pod_name in delete_pod_list:
                 if args.delete:
