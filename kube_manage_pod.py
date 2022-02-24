@@ -144,7 +144,7 @@ class pod_checker:
 
     def return_get_gpus(self,i,key_name='nvidia.com/gpu'):
         try:
-            num_gpus = i.spec.containers[0].resources.limits.get(key_name)
+            num_gpus = int(i.spec.containers[0].resources.limits.get(key_name))
         except:
             num_gpus = 0
         return num_gpus
@@ -200,8 +200,6 @@ class user_checker:
 
     def delete_pod_name_list(self,):
         max_num = user_checker.MAX_POD_NUM
-        if self.num_pods() <= max_num:
-            return []
         time_sort_list = self.pod_time_sorted_pair(self.pods)
         max_number_list = [ i['name'] for i in time_sort_list[max_num:] ]
         max_gpus_list  = self.count_max_gpus(
@@ -210,6 +208,7 @@ class user_checker:
             max_gpus_total=user_checker.MAX_GPUS_USER,
         )
         delete_list = set(max_number_list + max_gpus_list)
+        
         return delete_list
 
     def pod_loader(self,ns):
@@ -224,9 +223,6 @@ class user_checker:
 
     def pod_time_sorted_pair(self,pod_list):
         pod_info_list = list()
-        #name_list = list()
-        #time_list = list()
-        #gpu_list  = list()
         for i in pod_list:
             if pod_checker.check_system_namespace(i):
                 continue	# if it is system namespace, continue(pass below code).
@@ -247,9 +243,6 @@ class user_checker:
                     gpus=_pod_gpus
                 )
                 pod_info_list.append(__tmp_dict)
-                #name_list.append(_pod_name)
-                #time_list.append(_pod_create_time)
-        #time_sort_list = sorted(zip(time_list,name_list))
         time_sort_list = sorted(pod_info_list, key=lambda d: d['time'])
         return time_sort_list
 
@@ -263,6 +256,7 @@ class user_checker:
             now_use_gpu += _pod_gpus
             if _pod_gpus > max_gpus or now_use_gpu:
                 max_index = index
+                break
         return [i['name'] for i in time_sorted_pair_list[max_index:]]
                 
 
@@ -351,20 +345,17 @@ def main():
     # delete multiple pod runner's pods
     # Not now user this rule, so THRESHOLD is 12
     # User can make 12 pods now
-    if 1:
-    #if len(multiple_pod_runner_list) > 0:
-        #for _namespace in set(multiple_pod_runner_list):
-        for _namespace in set(running_pods_namespace):
-            _user_checker = user_checker(_namespace)
-            delete_pod_list = _user_checker.delete_pod_name_list()
-            if len(delete_pod_list) <= 0:
-                continue
-            for _pod_name in delete_pod_list:
-                if args.delete:
-                    print(f'kill pod:{_pod_name}, namespace:{_namespace}')
-                    v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
-                else:
-                    print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+    for _namespace in set(running_pods_namespace):
+        _user_checker = user_checker(_namespace)
+        delete_pod_list = _user_checker.delete_pod_name_list()
+        if len(delete_pod_list) <= 0:
+            continue
+        for _pod_name in delete_pod_list:
+            if args.delete:
+                print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
+            else:
+                print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
 
     if deleted_pod == 0:
         print(f"There is no pod to delete")
