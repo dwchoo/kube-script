@@ -254,7 +254,7 @@ class user_checker:
             _pod_name = _pod.get('name')
             _pod_gpus = _pod.get('gpus')
             now_use_gpu += _pod_gpus
-            if _pod_gpus > max_gpus or now_use_gpu:
+            if _pod_gpus > max_gpus or now_use_gpu > max_gpus_total:
                 max_index = index
                 break
         return [i['name'] for i in time_sorted_pair_list[max_index:]]
