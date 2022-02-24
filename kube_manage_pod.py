@@ -288,7 +288,7 @@ def main():
     pod_checker.ERROR_MESSAGE = ERROR_MESSAGE
     pod_checker.NOT_RUNNING_THRESHOLD = NOT_RUNNING_THRESHOLD
 
-    user_checker.MAX_POD_NUM = 12
+    user_checker.MAX_POD_NUM = 8
     user_checker.MAX_GPUS_POD = 4
     user_checker.MAX_PUGS_USER = 6
     user_checker.LIMITLESS_USER = ['pusan']
@@ -329,7 +329,7 @@ def main():
             if kill_policy:
                 deleted_pod += 1
                 if args.delete:
-                    print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                    print(f'Kill pod:{_pod_name}, namespace:{_namespace}')
                     v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
                 else:
                     print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
@@ -343,8 +343,11 @@ def main():
 
 
     # delete multiple pod runner's pods
-    # Not now user this rule, so THRESHOLD is 12
-    # User can make 12 pods now
+    # User can make 8 pods now
+    # User can use up to 6 GPUs
+    # Single container(Pod) can use up to 4 GPUs
+    # But you can set a limitless user(LIMITLESS_USER)
+    print(f'GPU LIMIT check')
     for _namespace in set(running_pods_namespace):
         _user_checker = user_checker(_namespace)
         delete_pod_list = _user_checker.delete_pod_name_list()
@@ -352,10 +355,10 @@ def main():
             continue
         for _pod_name in delete_pod_list:
             if args.delete:
-                print(f'kill pod:{_pod_name}, namespace:{_namespace}')
+                print(f'Kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
                 v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
             else:
-                print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+                print(f'NOT DELETED kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
 
     if deleted_pod == 0:
         print(f"There is no pod to delete")
