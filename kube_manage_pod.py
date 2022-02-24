@@ -5,6 +5,7 @@ from pprint import pprint
 from datetime import datetime, timezone
 import argparse
 import configparser
+import pathlib
 
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
@@ -13,7 +14,7 @@ class pod_checker:
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
     NOT_RUNNING_THRESHOLD = 2                     # threshold of pod not started days
 
-    gpu_key_name ='nvidia.com/gpu' 
+    gpu_key_name ='nvidia.com/gpu'
 
     def __init__(self,
             pod,
@@ -261,12 +262,47 @@ class user_checker:
                 
 
 
+def config_generator(config_file = 'config.ini'):
+    py_config = configparser.ConfigParser()
+
+    SYSTEM_NAMESPACE = ['kube', 'system','dashboard','jupyter']
+    RESTART_THRESHOLD = 5              	          # Maximun restart_count
+    FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
+    ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
+    NOT_RUNNING_THRESHOLD = 2                       # Days of pod not running
+
+    MAX_POD_NUM = 8
+    MAX_GPUS_POD = 4
+    MAX_GPUS_USER = 6
+    LIMITLESS_USER = ['pusan']
+
+    gpu_key_name ='nvidia.com/gpu'
 
 
+    py_config['POD'] = {}
+    py_config['POD']['SYSTEM_NAMESPACE']       = ', '.join(SYSTEM_NAMESPACE)
+    py_config['POD']['RESTART_THRESHOLD']      = str(RESTART_THRESHOLD)
+    py_config['POD']['FORBIDDEN_COMMAND']      = ', '.join(FORBIDDEN_COMMAND)
+    py_config['POD']['ERROR_MESSAGE']          = ', '.join(ERROR_MESSAGE)
+    py_config['POD']['NOT_RUNNING_THRESHOLD']  = str(NOT_RUNNING_THRESHOLD)
 
+    py_config['USER'] = {}
+    py_config['USER']['MAX_POD_NUM']    = str(MAX_POD_NUM)
+    py_config['USER']['MAX_GPUS_POD']   = str(MAX_GPUS_POD)
+    py_config['USER']['MAX_GPUS_USER']  = str(MAX_GPUS_USER)
+    py_config['USER']['LIMITLESS_USER'] = ', '.join(LIMITLESS_USER)
 
+    py_config['SYSTEM'] = {}
+    py_config['SYSTEM']['GPU_KEY_NAME'] = gpu_key_name
 
+    if not pathlib.Path(config_file).is_file():
+        with open(config_file, 'w', encoding='utf-8') as configfile:
+            py_config.write(configfile)
 
+def config_loader(config_file):
+    py_config = configparser.ConfigParser()
+    py_config.read(config_file, encoding='utf-8')
+    return py_config
 
 
 def main():
@@ -275,23 +311,21 @@ def main():
     parser.add_argument('--info',action='store_true')
     args = parser.parse_args()
 
-    SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
-    RESTART_THRESHOLD = 5              	          # Maximun restart_count
-    FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
-    ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
-    NOT_RUNNING_THRESHOLD = 2                       # Days of pod not running
+    config_file = 'config.ini'
+    config_generator(config_file)
+    py_config = config_loader(config_file)
 
+    pod_checker.SYSTEM_NAMESPACE        = py_config['POD']['SYSTEM_NAMESPACE'].replace(' ','').split(',')
+    pod_checker.RESTART_THRESHOLD       = int(py_config['POD']['RESTART_THRESHOLD'])
+    pod_checker.FORBIDDEN_COMMAND       = py_config['POD']['FORBIDDEN_COMMAND'].replace(' ','').split(',')  
+    pod_checker.ERROR_MESSAGE           = py_config['POD']['ERROR_MESSAGE'].replace(' ','').split(',')
+    pod_checker.NOT_RUNNING_THRESHOLD   = int(py_config['POD']['NOT_RUNNING_THRESHOLD'])
+    pod_checker.gpu_key_name            = py_config['SYSTEM']['GPU_KEY_NAME']
 
-    pod_checker.SYSTEM_NAMESPACE = SYSTEM_NAMESPACE
-    pod_checker.RESTART_THRESHOLD = RESTART_THRESHOLD
-    pod_checker.FORBIDDEN_COMMAND = FORBIDDEN_COMMAND
-    pod_checker.ERROR_MESSAGE = ERROR_MESSAGE
-    pod_checker.NOT_RUNNING_THRESHOLD = NOT_RUNNING_THRESHOLD
-
-    user_checker.MAX_POD_NUM = 8
-    user_checker.MAX_GPUS_POD = 4
-    user_checker.MAX_PUGS_USER = 6
-    user_checker.LIMITLESS_USER = ['pusan']
+    user_checker.MAX_POD_NUM        = int(py_config['USER']['MAX_POD_NUM'])
+    user_checker.MAX_GPUS_POD       = int(py_config['USER']['MAX_GPUS_POD'])
+    user_checker.MAX_PUGS_USER      = int(py_config['USER']['MAX_GPUS_USER'])
+    user_checker.LIMITLESS_USER     = py_config['USER']['LIMITLESS_USER'].replace(' ','').split(',')
 
 
     config.load_kube_config()
@@ -349,6 +383,8 @@ def main():
     # But you can set a limitless user(LIMITLESS_USER)
     print(f'GPU LIMIT check')
     for _namespace in set(running_pods_namespace):
+        if _namespace in user_checker.LIMITLESS_USER:
+            continue
         _user_checker = user_checker(_namespace)
         delete_pod_list = _user_checker.delete_pod_name_list()
         if len(delete_pod_list) <= 0:
