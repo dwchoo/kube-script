@@ -338,6 +338,8 @@ def main():
     multiple_pod_runner_list = list()
     running_pods_namespace = list()
 
+    print(f'=====================================================================')
+    print(f'{datetime.now().strftime("%Y-%m-%d_%H%M%S")}')
     if not args.delete:
         print(f"POD IS NOT DELETED")
         print(f"If you want to delete, add '--delete' args")
@@ -398,6 +400,8 @@ def main():
 
     if deleted_pod == 0:
         print(f"There is no pod to delete")
+
+    print(f'FINISH SCRIPT')
                     
 
 if __name__ == '__main__':
