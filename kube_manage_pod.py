@@ -12,6 +12,9 @@ class pod_checker:
     FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
     NOT_RUNNING_THRESHOLD = 2                     # threshold of pod not started days
+
+    gpu_key_name ='nvidia.com/gpu' 
+
     def __init__(self,
             pod,
             *args,
@@ -21,23 +24,24 @@ class pod_checker:
         assert pod_checker.container_status(self.pod)
 
         self.bool_system_namespace = pod_checker.check_system_namespace(self.pod)
-        self.bool_restart_threshold = self.check_restart_count(self.pod)
-        self.bool_error_message = self.check_error_message(self.pod)
-        self.bool_forbidden_command = self.check_forbidden_command(self.pod)
         self.bool_not_running = self.check_container_not_running(self.pod)
+        self.bool_restart_threshold = self.check_restart_count(self.pod)
+        self.bool_forbidden_command = self.check_forbidden_command(self.pod)
+        self.bool_error_message = self.check_error_message(self.pod)
+        
 
         self.namespace = self.return_namespace(self.pod)
         self.pod_name = self.return_pod_name(self.pod)
         self.pod_create_time = self.return_pod_create_time(self.pod)
-        self.pod_gpus = self.return_get_gpus(self.pod, 'nvidia.com/gpu')
+        self.pod_gpus = self.return_get_gpus(self.pod, pod_checker.gpu_key_name)
 
     def check_kill(self,):
         kill_policy_list = [
                 self.bool_system_namespace,
-                self.bool_restart_threshold,
-                self.bool_error_message,
-                self.bool_forbidden_command,
                 self.bool_not_running,
+                self.bool_restart_threshold,
+                self.bool_forbidden_command,
+                self.bool_error_message,
             ]
         return kill_policy_list
 
@@ -113,7 +117,6 @@ class pod_checker:
         except:
             self.running = False
             return False
-
 
                 
     def return_pod_create_time(self,i):
@@ -291,6 +294,12 @@ def main():
     pod_checker.ERROR_MESSAGE = ERROR_MESSAGE
     pod_checker.NOT_RUNNING_THRESHOLD = NOT_RUNNING_THRESHOLD
 
+    user_checker.MAX_POD_NUM = 12
+    user_checker.MAX_GPUS_POD = 4
+    user_checker.MAX_PUGS_USER = 6
+    user_checker.LIMITLESS_USER = ['pusan']
+
+
     config.load_kube_config()
     v1 = client.CoreV1Api()
     ret = v1.list_pod_for_all_namespaces()
@@ -299,6 +308,7 @@ def main():
 
     previous_namespace = None
     multiple_pod_runner_list = list()
+    running_pods_namespace = list()
 
     if not args.delete:
         print(f"POD IS NOT DELETED")
@@ -335,14 +345,15 @@ def main():
             multiple_pod_runner_list.append(_namespace)
         else:
             previous_namespace = _namespace
+            running_pods_namespace.append(_namespace)
 
 
     # delete multiple pod runner's pods
     # Not now user this rule, so THRESHOLD is 12
     # User can make 12 pods now
-    user_checker.MAX_POD_NUM = 12
     if len(multiple_pod_runner_list) > 0:
-        for _namespace in set(multiple_pod_runner_list):
+        #for _namespace in set(multiple_pod_runner_list):
+        for _namespace in set(running_pods_namespace):
             _user_checker = user_checker(_namespace)
             delete_pod_list = _user_checker.delete_pod_name_list()
             if len(delete_pod_list) <= 0:
