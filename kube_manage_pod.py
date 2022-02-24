@@ -7,7 +7,7 @@ import argparse
 import configparser
 
 class pod_checker:
-    SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
+    SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
     FORBIDDEN_COMMAND = ['sleep','tail','null','while true']   # forbidden commands
     ERROR_MESSAGE = ['ImagePullBackOff','ErrImagePull']          # waiting error message
@@ -29,6 +29,7 @@ class pod_checker:
         self.namespace = self.return_namespace(self.pod)
         self.pod_name = self.return_pod_name(self.pod)
         self.pod_create_time = self.return_pod_create_time(self.pod)
+        self.pod_gpus = self.return_get_gpus(self.pod, 'nvidia.com/gpu')
 
     def check_kill(self,):
         kill_policy_list = [
@@ -138,6 +139,17 @@ class pod_checker:
             pod_name = 'None'
         return pod_name
 
+    def return_get_gpus(self,i,key_name='nvidia.com/gpu'):
+        try:
+            num_gpus = i.spec.containers[0].resources.limits.get(key_name)
+        except:
+            num_gpus = 0
+        return num_gpus
+
+
+
+
+
     @classmethod
     def container_status(cls,i):
         try:
@@ -153,6 +165,7 @@ class pod_checker:
         _pod_running = self.running
         _restart_count = self.restart_count
         _command = self.break_command
+        _gpus  = self.pod_gpus
         _error = self.message
 
         info_str = f'''namespace: {_namespace:13}
@@ -160,12 +173,14 @@ pod name: {_pod_name}
 running: {_pod_running}
 restart: {_restart_count}
 command: {_command}
+gpus   : {_gpus}
 error: {_error}'''
         info = dict(
             namespace = _namespace,
             pod = _pod_name,
             restart_count = _restart_count,
             command = _command,
+            gpus = _gpus,
             error = _error,
             log = info_str,
         )
@@ -173,6 +188,9 @@ error: {_error}'''
         
 class user_checker:
     MAX_POD_NUM = 12                               # Number of pods that one user can run
+    MAX_GPUS_POD = 4
+    MAX_GPUS_USER = 6
+    LIMITLESS_USER = ['pusan']
     def __init__(self,namespace):
         self.namespace = namespace
         self.pods = self.pod_loader(self.namespace)
@@ -181,9 +199,15 @@ class user_checker:
         max_num = user_checker.MAX_POD_NUM
         if self.num_pods() <= max_num:
             return []
-        time_sort_list = self.pod_name_time_pair(self.pods)
-        delete_list = time_sort_list[max_num:]
-        return [i[1] for i in delete_list]
+        time_sort_list = self.pod_time_sorted_pair(self.pods)
+        max_number_list = [ i['name'] for i in time_sort_list[max_num:] ]
+        max_gpus_list  = self.count_max_gpus(
+            time_sort_list,
+            max_gpus= user_checker.MAX_GPUS_POD,
+            max_gpus_total=user_checker.MAX_GPUS_USER,
+        )
+        delete_list = set(max_number_list + max_gpus_list)
+        return delete_list
 
     def pod_loader(self,ns):
         config.load_kube_config()
@@ -195,9 +219,11 @@ class user_checker:
         num_pods = len(self.pods)
         return num_pods
 
-    def pod_name_time_pair(self,pod_list):
-        name_list = list()
-        time_list = list()
+    def pod_time_sorted_pair(self,pod_list):
+        pod_info_list = list()
+        #name_list = list()
+        #time_list = list()
+        #gpu_list  = list()
         for i in pod_list:
             if pod_checker.check_system_namespace(i):
                 continue	# if it is system namespace, continue(pass below code).
@@ -207,10 +233,36 @@ class user_checker:
                 _namespace = _pod_check.namespace
                 _pod_name = _pod_check.pod_name
                 _pod_create_time = _pod_check.pod_create_time
-                name_list.append(_pod_name)
-                time_list.append(_pod_create_time)
-        time_sort_list = sorted(zip(time_list,name_list))
+                _pod_gpus  = _pod_check.pod_gpus
+
+                if _namespace in user_checker.LIMITLESS_USER:
+                    continue                    # if user belongs to LIMITLESS_USER, pass the limit
+
+                __tmp_dict = dict(
+                    time=_pod_create_time,
+                    name=_pod_name,
+                    gpus=_pod_gpus
+                )
+                pod_info_list.append(__tmp_dict)
+                #name_list.append(_pod_name)
+                #time_list.append(_pod_create_time)
+        #time_sort_list = sorted(zip(time_list,name_list))
+        time_sort_list = sorted(pod_info_list, key=lambda d: d['time'])
         return time_sort_list
+
+    def count_max_gpus(self,time_sorted_pair_list, max_gpus=4, max_gpus_total=6):
+        now_use_gpu = 0
+        delete_list = list()
+        max_index = len(time_sorted_pair_list)
+        for index, _pod in enumerate(time_sorted_pair_list):
+            _pod_name = _pod.get('name')
+            _pod_gpus = _pod.get('gpus')
+            now_use_gpu += _pod_gpus
+            if _pod_gpus > max_gpus or now_use_gpu:
+                max_index = index
+        return [i['name'] for i in time_sorted_pair_list[max_index:]]
+                
+
 
 
 
@@ -288,7 +340,7 @@ def main():
     # delete multiple pod runner's pods
     # Not now user this rule, so THRESHOLD is 12
     # User can make 12 pods now
-    # user_checker.MAX_POD_NUM = 12
+    user_checker.MAX_POD_NUM = 12
     if len(multiple_pod_runner_list) > 0:
         for _namespace in set(multiple_pod_runner_list):
             _user_checker = user_checker(_namespace)
