@@ -1,7 +1,10 @@
+#!/usr/bin/awk BEGIN{a=ARGV[1];sub(/[a-z_.]+$/,".venv/bin/python",a);system(a"\t"ARGV[1])}
+# -*- coding: utf-8 -*-
 from kubernetes import client, config
 from pprint import pprint
 from datetime import datetime, timezone
 import argparse
+import configparser
 
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard']
