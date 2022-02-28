@@ -67,7 +67,7 @@ def get_gpu_usage(result_raw):
     if 'No' in result_raw:
         return False
     # return gpu usage
-    gpus_usage = [float(data) for data in result_raw.splitlines]
+    gpus_usage = [float(data) for data in result_raw.splitlines()]
     num_gpus = len(gpus_usage)
     return gpus_usage
 
