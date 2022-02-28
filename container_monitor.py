@@ -83,12 +83,7 @@ def test_code(command):
     return result_raw
 
 
-def exec_commands(
-    api_instance,
-    pod_name,
-    namespace,
-    command
-):
+def exec_commands(api_instance,pod_name,namespace,command):
     try:
         resp = api_instance.read_namespaced_pod(
             name=pod_name,
@@ -113,7 +108,6 @@ def exec_commands(
                   stderr=True, stdin=True,
                   stdout=True, tty=False,
                   )
-
     return str(resp)
 
 class process_checker:
@@ -180,14 +174,14 @@ class process_checker:
     
 if __name__ == '__main__':
     config.load_kube_config()
-    #api_instance = client.CoreV1Api()
-    try:
-        c = Configuration().get_default_copy()
-    except AttributeError:
-        c = Configuration()
-        c.assert_hostname = False
-    Configuration.set_default(c)
-    api_instance = core_v1_api.CoreV1Api()
+    api_instance = client.CoreV1Api()
+    #try:
+    #    c = Configuration().get_default_copy()
+    #except AttributeError:
+    #    c = Configuration()
+    #    c.assert_hostname = False
+    #Configuration.set_default(c)
+    #api_instance = core_v1_api.CoreV1Api()
     
     pod_name = 'dwchoo-tf'
     namespace = 'id201899212'
