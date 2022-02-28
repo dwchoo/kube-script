@@ -19,7 +19,7 @@ CPU_TOP_PID = 'ps ahux --sort=-c'
 '''
 
 # It show total cpu usage(not only my container)
-def get_cpu_usage(reusult_raw):
+def get_cpu_usage(result_raw):
     assert len(result_raw) > 5
     result_usage = result_raw.splitlines()
     '''
