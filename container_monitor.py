@@ -180,7 +180,8 @@ class process_checker:
     
 if __name__ == '__main__':
     config.load_kube_config()
-    api_instance = client.CoreV1Api()
+    #api_instance = client.CoreV1Api()
+    api_instance = core_v1_api.CoreV1Api()
     
     pod_name = 'dwchoo-tf'
     namespace = 'id201899212'
