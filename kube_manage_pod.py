@@ -7,6 +7,8 @@ import argparse
 import configparser
 import pathlib
 
+import container_monitor as cm
+
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
