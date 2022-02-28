@@ -181,6 +181,12 @@ class process_checker:
 if __name__ == '__main__':
     config.load_kube_config()
     #api_instance = client.CoreV1Api()
+    try:
+        c = Configuration().get_default_copy()
+    except AttributeError:
+        c = Configuration()
+        c.assert_hostname = False
+    Configuration.set_default(c)
     api_instance = core_v1_api.CoreV1Api()
     
     pod_name = 'dwchoo-tf'
