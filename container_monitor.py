@@ -5,6 +5,10 @@ from kubernetes.client.api import core_v1_api
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
+import pandas as pd
+from datetime import datetime, timedelta
+from copy import deepcopy
+
 GPU_USAGE_COMMAND = 'nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits'
 GPU_PID_COMMAND = 'nvidia-smi --query-compute-apps=pid --format=csv,noheader'
 CPU_USAGE_PID = 'ps -p <pid> -o %cpu --no-header'
@@ -170,6 +174,96 @@ class process_checker:
             command,
         )
         return results
+    
+    
+class process_manager:
+    TIME_DELTA = 2
+    SAFE_THRESHOLD = 4
+    COLUMN = dict(
+        namespace='object',
+        pod_name='object',
+        report='datetime64',
+        check='datetime64',
+        expire='datetime64',
+        safe_count='int8',
+    )
+    def __init__(self,manage_list_path):
+        self.now_time = datetime.now()
+        pass
+    
+    
+    def generate_data(self, namespace, pod_name):
+        dict_data = dict(
+            namespace = namespace,
+            pod_name  = pod_name,
+            report    = deepcopy(self.now_time),
+            check     = deepcopy(self.now_time),
+            expire    = self.now_time + \
+                            timedelta(hours=process_manager.TIME_DELTA),
+            safe_count = 0,
+        )
+        return dict_data
+    
+    def generate_DataFrame():
+        column = process_manager.COLUMN
+        df = pd.DataFrame(columns=column.keys()).astype(column)
+        return df
+    
+
+
+#    def add_new_data(dict_data,DataFrame):
+#        DataFrame = DataFrame.append(dict_data, ignore_index=True)
+#        return DataFrame
+#
+#    def return_index_find_data(namespace,pod_name,DataFrame):
+#        df = DataFrame
+#        index = df.index[(df['namespace'] == namespace) & (df['pod_name']==pod_name)].tolist()
+#        return index_list
+#
+#    def update_check(index,DataFrame):
+#        df = DataFrame
+#        df.loc[index,'check'] = datetime.now()
+#
+#    # mybe not use
+#    def update_expire(index,DataFrame):
+#        df = DataFrame
+#        df.loc[index,'expire'] = datetime.now() + timedelta(hours=TIME_DELTA)
+#
+#    # mybe not use
+#    def update_safe_count(index,DataFrame):
+#        df = DataFrame
+#        df.loc[index,'safe_count'] += 1
+#
+#    def remove_data(index, DataFrame):
+#        df = DataFrame
+#        df.drop(index, inplace=True)
+#        df.reset_index(inplace=True)
+#
+#
+#    def check_safe_count_list(DataFrame):
+#        df = DataFrame
+#        index_list = df.index[ df['safe_count'] >= SAFE_THRESHOLD].tolist() # change SAFE_THRESHOLD
+#        return index_list
+#
+#    def check_not_updated_pod(DataFrame):
+#        df = DataFrame
+#        now_time = datatime.now()
+#        index_list = df.index[ df['expire'] < now_time].tolist()
+#        return index_list
+#
+#    def check_pod_expire(index,DataFrame):
+#        df = DataFrame
+#        now_time = datetime.now()
+#        exipre_time = df.loc[index,'expire']
+#        remain_time = (expire_time - now_time).days
+#        if remain_time < 0:
+#            return True
+#        return False
+
+
+    
+    
+    
     
     
 if __name__ == '__main__':
