@@ -415,12 +415,12 @@ def main():
             if kill_policy:
                 deleted_pod += 1
                 if args.delete:
-                    print(f'Kill pod:{_pod_name}, namespace:{_namespace}')
-                    logger.warning(f'KILLED_{_namespace:11s}_{_pod_name:>10s}')
+                    print(f'KILL pod:{_pod_name}, namespace:{_namespace}')
+                    logger.warning(f'KILL_{_namespace:11s}_{_pod_name:>10s}')
                     v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
                 else:
-                    print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
-                    logger.warning(f'(NOT)KILLED_{_namespace:11s}_{_pod_name:>10s}')
+                    print(f'NOT DELETED KILL pod:{_pod_name}, namespace:{_namespace}')
+                    logger.warning(f'(NOT)KILL_{_namespace:11s}_{_pod_name:>10s}')
 
         # check multiple pod runner
         if previous_namespace == _namespace:
@@ -446,12 +446,12 @@ def main():
             continue
         for _pod_name in delete_pod_list:
             if args.delete:
-                print(f'Kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
-                logger.warning(f'KILLED_{_namespace:11s}_{_pod_name:>10s}')
+                print(f'KILL(GPU) pod:{_pod_name}, namespace:{_namespace}')
+                logger.warning(f'KILL_{_namespace:11s}_{_pod_name:>10s}')
                 v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
             else:
-                print(f'NOT DELETED kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
-                logger.warning(f'(NOT)KILLED_{_namespace:11s}_{_pod_name:>10s}')
+                print(f'NOT DELETED KILL(GPU) pod:{_pod_name}, namespace:{_namespace}')
+                logger.warning(f'(NOT)KILL_{_namespace:11s}_{_pod_name:>10s}')
 
     if deleted_pod == 0:
         print(f"There is no pod to delete")
