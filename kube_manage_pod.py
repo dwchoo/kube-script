@@ -192,7 +192,7 @@ class pod_checker:
 
         _namespace      = (self.namespace, self.bool_system_namespace)
         _pod_name       = (self.pod_name, '0')
-        _pod_running    = (self.running, self.date_delta)
+        _pod_running    = (self.date_delta, self.bool_not_running)
         _restart_count  = (self.restart_count, self.bool_restart_threshold)
         _command        = (self.break_command, self.bool_forbidden_command)
         _gpus           = (self.pod_gpus, '0')
