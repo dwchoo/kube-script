@@ -348,7 +348,6 @@ def main():
     parser = argparse.ArgumentParser(description='Kubernetes pod killer')
     parser.add_argument('--delete', action='store_true')
     parser.add_argument('--info',action='store_true')
-    parser.add_argument('--log',action='store_true', default='./log')
     args = parser.parse_args()
 
     config_file = 'config.ini'
