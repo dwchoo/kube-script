@@ -66,7 +66,7 @@ class pod_checker:
                 ns    = ns,
                 pod   = pod,
                 pol   = str(pol)[:7],
-                pol_b = pol_info[1],
+                pol_b = int(pol_info[1]),
                 pol_m = pol_info[0],
             ))
 
@@ -205,6 +205,7 @@ error: {_error}'''
         info = dict(
             namespace = _namespace,
             pod = _pod_name,
+            running = _pod_running,
             restart_count = _restart_count,
             command = _command,
             gpus = _gpus,
