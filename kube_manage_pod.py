@@ -128,7 +128,7 @@ class pod_checker:
         try:
             container_status = i.status.container_statuses[-1].state
             running_state = container_status.running
-            self.date_delta = 0
+            self.date_delta = 'STOP'
             if running_state:
                 self.running = True
                 self.date_delta='RUN'
