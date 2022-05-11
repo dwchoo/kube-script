@@ -128,12 +128,15 @@ class pod_checker:
         try:
             container_status = i.status.container_statuses[-1].state
             running_state = container_status.running
+            self.date_delta = 0
             if running_state:
                 self.running = True
+                self.date_delta='RUN'
                 return False
             else:
                 self.running = False
                 date_delta = (today-container_status.terminated.finished_at).days
+                self.date_delta = date_delta
                 if date_delta > threshold:
                     return True
                 else:
@@ -189,7 +192,7 @@ class pod_checker:
 
         _namespace      = (self.namespace, self.bool_system_namespace)
         _pod_name       = (self.pod_name, '0')
-        _pod_running    = (self.running, self.bool_not_running)
+        _pod_running    = (self.running, self.date_delta)
         _restart_count  = (self.restart_count, self.bool_restart_threshold)
         _command        = (self.break_command, self.bool_forbidden_command)
         _gpus           = (self.pod_gpus, '0')
