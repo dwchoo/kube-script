@@ -371,7 +371,8 @@ def main():
 
 
     logger_module = log_module.log_module(file_path=log_path)
-    global logger = logger_module.logger
+    global logger
+    logger = logger_module.logger
 
     config.load_kube_config()
     v1 = client.CoreV1Api()
