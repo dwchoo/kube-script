@@ -8,6 +8,8 @@ import configparser
 import pathlib
 
 import container_monitor as cm
+import logger_module
+from logger_module import logger
 
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
@@ -31,6 +33,8 @@ class pod_checker:
         self.bool_restart_threshold = self.check_restart_count(self.pod)
         self.bool_forbidden_command = self.check_forbidden_command(self.pod)
         self.bool_error_message = self.check_error_message(self.pod)
+
+        self.bool_killing_pod = any(self.check_kill())
         
 
         self.namespace = self.return_namespace(self.pod)
@@ -48,6 +52,22 @@ class pod_checker:
             ]
         return kill_policy_list
 
+    def results_logger(self, logger):
+        message_format = '{ns:11s}_{pod:10s}_{pol_b:>4}_{pol_m:>5}'
+        _info = self.pod_info()
+        ns  = self.namespace
+        pod = self.pod_name
+        pass_pol_name = ['namespace','pod','log']
+        logger_type = logger.info if self.bool_killing_pod else logger.debug
+        for pol, pol_info in _info.info.items():
+            if str(pol) in pass_pol_name:
+                continue
+            logger_type(message_format.format(
+                ns    = ns,
+                pod   = pod,
+                pol_b = pol_info[1],
+                pol_m = pol_info[0],
+            ))
 
     @classmethod
     def check_system_namespace(cls,i):
@@ -166,13 +186,13 @@ class pod_checker:
 
     def pod_info(self,):
 
-        _namespace = self.namespace
-        _pod_name = self.pod_name
-        _pod_running = self.running
-        _restart_count = self.restart_count
-        _command = self.break_command
-        _gpus  = self.pod_gpus
-        _error = self.message
+        _namespace      = (self.namespace, self.bool_system_namespace)
+        _pod_name       = (self.pod_name, 'None')
+        _pod_running    = (self.running, self.bool_not_running)
+        _restart_count  = (self.restart_count, self.bool_restart_threshold)
+        _command        = (self.break_command, self.bool_forbidden_command)
+        _gpus           = (self.pod_gpus, 'None')
+        _error          = (self.message, self.bool_error_message)
 
         info_str = f'''namespace: {_namespace:13}
 pod name: {_pod_name}
@@ -211,7 +231,10 @@ class user_checker:
             max_gpus_total=user_checker.MAX_GPUS_USER,
         )
         delete_list = set(max_number_list + max_gpus_list)
-        
+        if len(max_number_list) > 0:
+            logger.info(f'{self.namespace:11s}_KILL_NUM-{delete_list}')
+        if len(max_gpus_list) > 0:
+            logger.info(f'{self.namespace:11s}_KILL_GPUS-{delete_list}')
         return delete_list
 
     def pod_loader(self,ns):
@@ -257,8 +280,10 @@ class user_checker:
             _pod_name = _pod.get('name')
             _pod_gpus = _pod.get('gpus')
             now_use_gpu += _pod_gpus
+            logger.debug(f'{self.namespace:11s}_{_pod_name:10s}_gpus:{_pod_gpus:2d}_total:{now_use_gpu:2d}')
             if _pod_gpus > max_gpus or now_use_gpu > max_gpus_total:
                 max_index = index
+                logger.info(f'{self.namespace:11s}_{_pod_name:10s}_total_gpu:{now_use_gpu:2d}_KILL')
                 break
         return [i['name'] for i in time_sorted_pair_list[max_index:]]
                 
@@ -342,9 +367,12 @@ def main():
 
     print(f'=====================================================================')
     print(f'{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
+    logger.warning(f'{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
     if not args.delete:
         print(f"POD IS NOT DELETED")
         print(f"If you want to delete, add '--delete' args")
+        logger.warning(f"POD IS NOT DELETED")
+        logger.warning(f"If you want to delete, add '--delete' args")
 
     for i in ret.items:
 
@@ -358,6 +386,7 @@ def main():
             
             # Check pod
             kill_policy = any(_pod_check.check_kill())
+            _pod_check.results_logger(logger)
             if args.info:
                 print(f'==============================')
                 print(_pod_check.pod_info()['log'])
@@ -368,9 +397,11 @@ def main():
                 deleted_pod += 1
                 if args.delete:
                     print(f'Kill pod:{_pod_name}, namespace:{_namespace}')
+                    logger.warning(f'KILLED_{_namespace:11s}_{_pod_name:>10s}')
                     v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
                 else:
                     print(f'NOT DELETED kill pod:{_pod_name}, namespace:{_namespace}')
+                    logger.warning(f'(NOT)KILLED_{_namespace:11s}_{_pod_name:>10s}')
 
         # check multiple pod runner
         if previous_namespace == _namespace:
@@ -386,6 +417,7 @@ def main():
     # Single container(Pod) can use up to 4 GPUs
     # But you can set a limitless user(LIMITLESS_USER)
     print(f'GPU LIMIT check')
+    logger.warning(f'GPU LIMIT check')
     for _namespace in set(running_pods_namespace):
         if _namespace in user_checker.LIMITLESS_USER:
             continue
@@ -396,15 +428,20 @@ def main():
         for _pod_name in delete_pod_list:
             if args.delete:
                 print(f'Kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
+                logger.warning(f'KILLED_{_namespace:11s}_{_pod_name:>10s}')
                 v1.delete_namespaced_pod(name=_pod_name,namespace=_namespace)
             else:
                 print(f'NOT DELETED kill(GPU) pod:{_pod_name}, namespace:{_namespace}')
+                logger.warning(f'(NOT)KILLED_{_namespace:11s}_{_pod_name:>10s}')
 
     if deleted_pod == 0:
         print(f"There is no pod to delete")
+        logger.warning('No pod to delete')
 
     print(f'FINISH SCRIPT')
+    logger.warning(f'FINISH SCRIPT')
                     
 
 if __name__ == '__main__':
     main()
+    logger_module.close_handler(logger)
