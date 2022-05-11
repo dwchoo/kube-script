@@ -53,7 +53,7 @@ class pod_checker:
         return kill_policy_list
 
     def results_logger(self, logger):
-        message_format = '{ns:11s}_{pod:10s}_{pol:>7}_{pol_b:>4}_{pol_m:>5}'
+        message_format = '{ns:11s}_{pod:10s}    {pol:>7}_{pol_b}_{pol_m}'
         _info = self.pod_info()
         ns  = self.namespace
         pod = self.pod_name
@@ -233,9 +233,9 @@ class user_checker:
         )
         delete_list = set(max_number_list + max_gpus_list)
         if len(max_number_list) > 0:
-            logger.info(f'{self.namespace:11s}_KILL_NUM-{delete_list}')
+            logger.info(f'{self.namespace:11s}    KILL_NUM-{delete_list}')
         if len(max_gpus_list) > 0:
-            logger.info(f'{self.namespace:11s}_KILL_GPUS-{delete_list}')
+            logger.info(f'{self.namespace:11s}    KILL_GPUS-{delete_list}')
         return delete_list
 
     def pod_loader(self,ns):
@@ -281,10 +281,10 @@ class user_checker:
             _pod_name = _pod.get('name')
             _pod_gpus = _pod.get('gpus')
             now_use_gpu += _pod_gpus
-            logger.debug(f'{self.namespace:11s}_{_pod_name:10s}_gpus:{_pod_gpus:2d}_total:{now_use_gpu:2d}')
+            logger.debug(f'{self.namespace:11s}_{_pod_name:10s}    gpus:{_pod_gpus}  total:{now_use_gpu:2d}')
             if _pod_gpus > max_gpus or now_use_gpu > max_gpus_total:
                 max_index = index
-                logger.info(f'{self.namespace:11s}_{_pod_name:10s}_total_gpu:{now_use_gpu:2d}_KILL')
+                logger.info(f'{self.namespace:11s}_{_pod_name:10s}    total_gpu:{now_use_gpu:2d}  KILL')
                 break
         return [i['name'] for i in time_sorted_pair_list[max_index:]]
                 
