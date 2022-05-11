@@ -8,13 +8,14 @@ import configparser
 import pathlib
 
 import container_monitor as cm
-import logger_module
-from logger_module import logger
+import log_module
 
 """
     UPDATE logging module
 
 """
+logger = None
+
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
@@ -313,6 +314,7 @@ def config_generator(config_file = 'config.ini'):
     LIMITLESS_USER = ['pusan']
 
     gpu_key_name ='nvidia.com/gpu'
+    log_path = './log'
 
 
     py_config['POD'] = {}
@@ -330,6 +332,7 @@ def config_generator(config_file = 'config.ini'):
 
     py_config['SYSTEM'] = {}
     py_config['SYSTEM']['GPU_KEY_NAME'] = gpu_key_name
+    py_config['SYSTEM']['LOG_PATH'] = log_path
 
     if not pathlib.Path(config_file).is_file():
         with open(config_file, 'w', encoding='utf-8') as configfile:
@@ -345,11 +348,14 @@ def main():
     parser = argparse.ArgumentParser(description='Kubernetes pod killer')
     parser.add_argument('--delete', action='store_true')
     parser.add_argument('--info',action='store_true')
+    parser.add_argument('--log',action='store_true', const='./log')
     args = parser.parse_args()
 
     config_file = 'config.ini'
     config_generator(config_file)
     py_config = config_loader(config_file)
+
+    log_path = py_config['SYSTEM']['LOG_PATH']
 
     pod_checker.SYSTEM_NAMESPACE        = py_config['POD']['SYSTEM_NAMESPACE'].replace(' ','').split(',')
     pod_checker.RESTART_THRESHOLD       = int(py_config['POD']['RESTART_THRESHOLD'])
@@ -363,6 +369,9 @@ def main():
     user_checker.MAX_PUGS_USER      = int(py_config['USER']['MAX_GPUS_USER'])
     user_checker.LIMITLESS_USER     = py_config['USER']['LIMITLESS_USER'].replace(' ','').split(',')
 
+
+    logger_module = log_module.log_module(file_path=log_path)
+    global logger = logger_module.logger
 
     config.load_kube_config()
     v1 = client.CoreV1Api()
@@ -453,4 +462,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    logger_module.close_handler(logger)
+    log_module.close_handler(logger)
