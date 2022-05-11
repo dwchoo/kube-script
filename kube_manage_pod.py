@@ -194,7 +194,7 @@ class pod_checker:
         _gpus           = (self.pod_gpus, 'None')
         _error          = (self.message, self.bool_error_message)
 
-        info_str = f'''namespace: {_namespace:13s}
+        info_str = f'''namespace: {_namespace}
 pod name: {_pod_name}
 running: {_pod_running}
 restart: {_restart_count}
