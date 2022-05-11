@@ -59,7 +59,7 @@ class pod_checker:
         pod = self.pod_name
         pass_pol_name = ['namespace','pod','log']
         logger_type = logger.info if self.bool_killing_pod else logger.debug
-        for pol, pol_info in _info.info.items():
+        for pol, pol_info in _info.items():
             if str(pol) in pass_pol_name:
                 continue
             logger_type(message_format.format(
