@@ -11,6 +11,10 @@ import container_monitor as cm
 import logger_module
 from logger_module import logger
 
+"""
+    UPDATE logging module
+
+"""
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
     RESTART_THRESHOLD = 5              	          # Maximun restart_count
