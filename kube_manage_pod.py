@@ -53,7 +53,7 @@ class pod_checker:
         return kill_policy_list
 
     def results_logger(self, logger):
-        message_format = '{ns:11s}_{pod:10s}_{pol_b:>4}_{pol_m:>5}'
+        message_format = '{ns:11s}_{pod:10s}_{pol:>7}_{pol_b:>4}_{pol_m:>5}'
         _info = self.pod_info()
         ns  = self.namespace
         pod = self.pod_name
@@ -65,6 +65,7 @@ class pod_checker:
             logger_type(message_format.format(
                 ns    = ns,
                 pod   = pod,
+                pol   = str(pol)[:7],
                 pol_b = pol_info[1],
                 pol_m = pol_info[0],
             ))
@@ -86,7 +87,7 @@ class pod_checker:
         try:
             self.message = str(i.status.container_statuses[0].state.waiting.reason)
         except:
-            self.message = 'None'
+            self.message = '0'
         if self.message in error_message:
             return True
         else:
@@ -107,7 +108,7 @@ class pod_checker:
             if any([__command in _args for _args in args]):
                 self.break_command = __command
                 return True
-        self.break_command = 'None'
+        self.break_command = '0'
         return False
 
     def check_restart_count(self,i):
@@ -187,11 +188,11 @@ class pod_checker:
     def pod_info(self,):
 
         _namespace      = (self.namespace, self.bool_system_namespace)
-        _pod_name       = (self.pod_name, 'None')
+        _pod_name       = (self.pod_name, '0')
         _pod_running    = (self.running, self.bool_not_running)
         _restart_count  = (self.restart_count, self.bool_restart_threshold)
         _command        = (self.break_command, self.bool_forbidden_command)
-        _gpus           = (self.pod_gpus, 'None')
+        _gpus           = (self.pod_gpus, '0')
         _error          = (self.message, self.bool_error_message)
 
         info_str = f'''namespace: {_namespace}
@@ -367,7 +368,7 @@ def main():
 
     print(f'=====================================================================')
     print(f'{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
-    logger.warning(f'{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
+    logger.warning(f'SCRIPT_RUN--{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}')
     if not args.delete:
         print(f"POD IS NOT DELETED")
         print(f"If you want to delete, add '--delete' args")
