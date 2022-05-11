@@ -62,7 +62,6 @@ class log_module:
             return _logger
 
 
-
         debug_logger = create_handler(
                 filename=f'{file_path}/{now_time}_logging_debug.log',
                 formatter=formatter,
@@ -77,6 +76,7 @@ class log_module:
             
         self.logger.addHandler(debug_logger)
         self.logger.addHandler(info_logger)
+        self.logger.warning(f'SAVED_PATH:{file_path}/{now_time}_logging_*.log')
 
 
 if __name__ == '__main__':
