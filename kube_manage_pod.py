@@ -53,7 +53,7 @@ class pod_checker:
         return kill_policy_list
 
     def results_logger(self, logger):
-        message_format = '{ns:11s}_{pod:10s}    {pol:>7}_{pol_b}_{pol_m}'
+        message_format = '{ns:11s}_{pod:10s}    {pol:>7}:{pol_b:d}_{pol_m:d}'
         _info = self.pod_info()
         ns  = self.namespace
         pod = self.pod_name
