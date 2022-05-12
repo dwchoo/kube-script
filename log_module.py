@@ -38,7 +38,7 @@ class log_module:
     def __init__(self,file_path='./log'):
 
         Path(file_path).mkdir(parents=True,exist_ok=True)
-        now_time = datetime.now().strftime('%Y-%m-%d_%H')
+        now_time = datetime.now().strftime('%Y-%m-%d')
 
         self.logger = logging.getLogger('Kube_pod_manager')
         self.logger.setLevel(logging.DEBUG)
