@@ -1,5 +1,6 @@
 #!/usr/bin/awk BEGIN{a=ARGV[1];sub(/[a-z_.]+$/,".venv/bin/python",a);system(a"\t"ARGV[1])}
 # -*- coding: utf-8 -*-
+import os
 from kubernetes import client, config
 from pprint import pprint
 from datetime import datetime, timezone
@@ -15,6 +16,9 @@ import log_module
 
 """
 logger = None
+
+script_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(script_dir)
 
 class pod_checker:
     SYSTEM_NAMESPACE = ['kube', 'system','dashboard', 'jupyter']
