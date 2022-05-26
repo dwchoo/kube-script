@@ -155,10 +155,10 @@ class pod_checker:
     def check_container_not_running(self,i):
         threshold = pod_checker.NOT_RUNNING_THRESHOLD
         today = datetime.now(timezone.utc)
+        deletion_timestamp = getattr(i.metadata,'deletion_timestamp',False)
         try:
             container_status = i.status.container_statuses[-1].state
             running_state = container_status.running
-            deletion_timestamp = getattr(i.metadata,'deletion_timestamp',False)
             self.date_delta = 'STOP'
             if running_state and not deletion_timestamp:
                 self.running = True
@@ -179,7 +179,11 @@ class pod_checker:
         except:
             self.running = False
             self.date_delta = 'NOT START'
-            return False
+            if deletion_timestamp:
+                self.date_delta = 'NOT START NOT DELETED'
+                return True
+            else:
+                return False
 
                 
     def return_pod_create_time(self,i):
