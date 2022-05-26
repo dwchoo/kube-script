@@ -35,21 +35,42 @@ class pod_checker:
             **kwargs
             ):
         self.pod = pod
-        assert pod_checker.container_status(self.pod)
+        if not pod_checker.container_status(self.pod) and \
+                getattr(self.pod.metadata,'deletion_timestamp',False):
+            self.state_attr()
+        else:
+            self.state_attr(nodeORpodERROR=True)
 
-        self.bool_system_namespace = pod_checker.check_system_namespace(self.pod)
-        self.bool_not_running = self.check_container_not_running(self.pod)
-        self.bool_restart_threshold = self.check_restart_count(self.pod)
-        self.bool_forbidden_command = self.check_forbidden_command(self.pod)
-        self.bool_error_message = self.check_error_message(self.pod)
 
-        self.bool_killing_pod = any(self.check_kill())
-        
+    def state_attr(self,nodeORpodERROR=False):
+        if nodeORpodERROR:
+            self.bool_system_namespace = pod_checker.check_system_namespace(self.pod)
+            self.bool_not_running = True
+            self.bool_restart_threshold = self.check_restart_count(self.pod)
+            self.bool_forbidden_command = self.check_forbidden_command(self.pod)
+            self.bool_error_message = self.check_error_message(self.pod)
 
-        self.namespace = self.return_namespace(self.pod)
-        self.pod_name = self.return_pod_name(self.pod)
-        self.pod_create_time = self.return_pod_create_time(self.pod)
-        self.pod_gpus = self.return_get_gpus(self.pod, pod_checker.gpu_key_name)
+            self.bool_killing_pod = True
+            
+            self.namespace = self.return_namespace(self.pod)
+            self.pod_name = self.return_pod_name(self.pod)
+            self.pod_create_time = self.return_pod_create_time(self.pod)
+            self.pod_gpus = self.return_get_gpus(self.pod, pod_checker.gpu_key_name)
+
+        else:
+            self.bool_system_namespace = pod_checker.check_system_namespace(self.pod)
+            self.bool_not_running = self.check_container_not_running(self.pod)
+            self.bool_restart_threshold = self.check_restart_count(self.pod)
+            self.bool_forbidden_command = self.check_forbidden_command(self.pod)
+            self.bool_error_message = self.check_error_message(self.pod)
+
+            self.bool_killing_pod = any(self.check_kill())
+            
+
+            self.namespace = self.return_namespace(self.pod)
+            self.pod_name = self.return_pod_name(self.pod)
+            self.pod_create_time = self.return_pod_create_time(self.pod)
+            self.pod_gpus = self.return_get_gpus(self.pod, pod_checker.gpu_key_name)
 
     def check_kill(self,):
         kill_policy_list = [
@@ -199,7 +220,7 @@ class pod_checker:
         try:
             status = i.status.container_statuses
         except:
-            status = None
+            status = False
         return status
 
     def pod_info(self,):
