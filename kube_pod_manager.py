@@ -160,7 +160,7 @@ class pod_checker:
             running_state = container_status.running
             deletion_timestamp = getattr(i.metadata,'deletion_timestamp',False)
             self.date_delta = 'STOP'
-            if running_state and deletion_timestamp:
+            if running_state and not deletion_timestamp:
                 self.running = True
                 self.date_delta='RUN'
                 return False
@@ -428,7 +428,8 @@ def main():
         if pod_checker.check_system_namespace(i):
             continue	# if it is system namespace, continue(pass below code).
 
-        if pod_checker.container_status(i):
+        #if pod_checker.container_status(i):
+        if True:
             _pod_check = pod_checker(i)
             _namespace = _pod_check.namespace
             _pod_name = _pod_check.pod_name
