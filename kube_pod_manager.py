@@ -178,6 +178,7 @@ class pod_checker:
                     return False
         except:
             self.running = False
+            self.date_delta = 'NOT START'
             return False
 
                 
