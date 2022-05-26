@@ -137,11 +137,16 @@ class pod_checker:
         try:
             container_status = i.status.container_statuses[-1].state
             running_state = container_status.running
+            deletion_timestamp = getattr(i.metadata,'deletion_timestamp',False)
             self.date_delta = 'STOP'
-            if running_state:
+            if running_state and deletion_timestamp:
                 self.running = True
                 self.date_delta='RUN'
                 return False
+            elif deletion_timestamp:
+                self.running = False
+                self.date_delta='TERMINATING'
+                return True
             else:
                 self.running = False
                 date_delta = (today-container_status.terminated.finished_at).days
