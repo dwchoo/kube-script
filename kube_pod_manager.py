@@ -45,7 +45,7 @@ class pod_checker:
     def state_attr(self,nodeORpodERROR=False):
         if nodeORpodERROR:
             self.bool_system_namespace = pod_checker.check_system_namespace(self.pod)
-            self.bool_not_running = True
+            self.bool_not_running = self.check_container_not_running(self.pod)
             self.bool_restart_threshold = self.check_restart_count(self.pod)
             self.bool_forbidden_command = self.check_forbidden_command(self.pod)
             self.bool_error_message = self.check_error_message(self.pod)
