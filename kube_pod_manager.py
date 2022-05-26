@@ -430,12 +430,12 @@ def main():
                     print(f'NOT DELETED KILL pod:{_pod_name}, namespace:{_namespace}')
                     logger.warning(f'(NOT)KILL_{_namespace:11s}_{_pod_name:>10s}')
 
-        # check multiple pod runner
-        if previous_namespace == _namespace:
-            multiple_pod_runner_list.append(_namespace)
-        else:
-            previous_namespace = _namespace
-            running_pods_namespace.append(_namespace)
+            # check multiple pod runner
+            if previous_namespace == _namespace:
+                multiple_pod_runner_list.append(_namespace)
+            else:
+                previous_namespace = _namespace
+                running_pods_namespace.append(_namespace)
 
 
     # delete multiple pod runner's pods
